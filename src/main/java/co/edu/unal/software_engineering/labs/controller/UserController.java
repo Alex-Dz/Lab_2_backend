@@ -18,7 +18,7 @@ import java.util.Collections;
 
 @CrossOrigin
 @RestController
-public class UserController{
+public class UserController {
 
     private UserService userService;
 
@@ -26,42 +26,40 @@ public class UserController{
 
     private PasswordEncoder passwordEncoder;
 
-    public UserController( UserService userService, RoleService roleService, PasswordEncoder passwordEncoder ){
+    public UserController(UserService userService, RoleService roleService, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
     }
 
-    @PostMapping( value = { "/registro/nuevo-usuario/rol/{roleId}" } )
-    public ResponseEntity<Void> registerNewUser( @PathVariable Integer roleId, @RequestBody RegisterUserPOJO userPOJO ){
-        Role role = roleService.findById( roleId );
-        User existingUser = userService.findByUsername( userPOJO.getUsername( ) );
-        if( role == null || existingUser != null || !userService.isRightUser( userPOJO ) ){
-            return new ResponseEntity<>( HttpStatus.BAD_REQUEST );
+    @PostMapping(value = {"/registro/nuevo-usuario/rol/{roleId}"})
+    public ResponseEntity<Void> registerNewUser(@PathVariable Integer roleId, @RequestBody RegisterUserPOJO userPOJO) {
+        Role role = roleService.findById(roleId);
+        User existingUser = userService.findByUsername(userPOJO.getUsername());
+        if (role == null || existingUser != null || !userService.isRightUser(userPOJO)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        User newUser = new User( );
-        newUser.setNames( userPOJO.getNames( ).toUpperCase( ) );
-        newUser.setSurnames( userPOJO.getSurnames( ).toUpperCase( ) );
-        newUser.setUsername( userPOJO.getUsername( ).toLowerCase( ) );
-        newUser.setPassword( passwordEncoder.encode( userPOJO.getPassword( ) ) );
-        newUser.setRoles( Collections.singletonList( role ) );
-        userService.save( newUser );
-        return new ResponseEntity<>( HttpStatus.CREATED );
+        User newUser = new User();
+        newUser.setNames(userPOJO.getNames().toUpperCase());
+        newUser.setSurnames(userPOJO.getSurnames().toUpperCase());
+        newUser.setUsername(userPOJO.getUsername().toLowerCase());
+        newUser.setPassword(passwordEncoder.encode(userPOJO.getPassword()));
+        newUser.setRoles(Collections.singletonList(role));
+        userService.save(newUser);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @PostMapping( value = { "/registro/nuevo-rol/{roleId}" }, consumes = MediaType.APPLICATION_JSON_VALUE )
-    public ResponseEntity<Void> registerRoleToUser( @PathVariable Integer roleId, @RequestBody LoginUserPOJO pojo ){
-        Role role = roleService.findById( roleId );
-        String username = SecurityContextHolder.getContext( ).getAuthentication( ).getName( );
-        User existingUser = userService.findByUsername( username );
-        if( role == null || existingUser.hasRole( role ) ){
-            return new ResponseEntity<>( HttpStatus.BAD_REQUEST );
-        }else if( !passwordEncoder.matches( pojo.getPassword( ), existingUser.getPassword( ) ) ){
-            return new ResponseEntity<>( HttpStatus.UNAUTHORIZED );
+    @PostMapping(value = {"/registro/nuevo-rol/{roleId}"}, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> registerRoleToUser(@PathVariable Integer roleId, @RequestBody LoginUserPOJO pojo) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String result = roleService.addRole(roleId, username, pojo);
+        if (result == "BAD_REQUEST") {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } else if (result == "UNAUTHORIZED") {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } else {
+            return new ResponseEntity<>(HttpStatus.CREATED);
         }
-        existingUser.addRole( role );
-        userService.save( existingUser );
-        return new ResponseEntity<>( HttpStatus.CREATED );
     }
 
 }
